@@ -94,7 +94,7 @@ let y = Math.random()*(window_height - radius*2) + radius;
 
 let color = `#${Math.floor(Math.random()*16777215).toString(16)}`;
 
-let speed = Math.random()*4 + 1;
+let speed = 5;
 
 let text = `C${i+1}`;
 
