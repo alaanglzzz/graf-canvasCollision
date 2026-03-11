@@ -1,176 +1,112 @@
 const canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d");
 
-const window_height = window.innerHeight;
-const window_width = window.innerWidth;
+let objects = [];
+let score = 0;
 
-canvas.height = window_height;
-canvas.width = window_width;
-canvas.style.background = "black";
+const img = new Image();
+img.src = "objeto.png"; // aquí pones tu imagen
 
-class Circle {
+class FallingObject{
 
-constructor(x,y,radius,color,text,speed){
-
-this.posX = x;
-this.posY = y;
-this.radius = radius;
-
-this.originalColor = color;
-this.color = color;
-
-this.text = text;
-
+constructor(x,y,speed,size){
+this.x = x;
+this.y = y;
 this.speed = speed;
+this.size = size;
+}
 
-this.dx = (Math.random()*2-1) * speed;
-this.dy = (Math.random()*2-1) * speed;
+draw(){
+ctx.drawImage(img,this.x,this.y,this.size,this.size);
+}
 
-this.flashTime = 0;
+update(){
+this.y += this.speed;
+
+if(this.y > canvas.height){
+this.y = -this.size;
+this.x = Math.random()*canvas.width;
+}
+}
 
 }
 
-draw(context){
+function createObjects(){
 
-context.beginPath();
+for(let i=0;i<8;i++){
 
-context.strokeStyle = this.color;
+let x = Math.random()*canvas.width;
+let y = Math.random()*-500;
+let speed = Math.random()*2+1;
+let size = 80;
 
-context.textAlign="center";
-context.textBaseline="middle";
-context.font="20px Arial";
-
-context.fillStyle = this.color;
-context.fillText(this.text,this.posX,this.posY);
-
-context.lineWidth=2;
-
-context.arc(this.posX,this.posY,this.radius,0,Math.PI*2,false);
-
-context.stroke();
-
-context.closePath();
-
-}
-
-update(context){
-
-this.draw(context);
-
-this.posX += this.dx;
-this.posY += this.dy;
-
-// rebote con paredes
-if(this.posX + this.radius > window_width || this.posX - this.radius < 0){
-this.dx = -this.dx;
-}
-
-if(this.posY + this.radius > window_height || this.posY - this.radius < 0){
-this.dy = -this.dy;
-}
-
-// flash azul temporal
-if(this.flashTime > 0){
-this.flashTime--;
-this.color = "#0000FF";
-}else{
-this.color = this.originalColor;
-}
+objects.push(new FallingObject(x,y,speed,size));
 
 }
 
 }
 
-let circles = [];
+function updateSpeed(){
 
-function generateCircles(n){
+let multiplier = 1;
 
-for(let i=0;i<n;i++){
+if(score > 15){
+multiplier = 3;
+}else if(score > 10){
+multiplier = 2;
+}
 
-let radius = Math.random()*30 + 20;
-
-let x = Math.random()*(window_width - radius*2) + radius;
-let y = Math.random()*(window_height - radius*2) + radius;
-
-let color = `#${Math.floor(Math.random()*16777215).toString(16)}`;
-
-let speed = 5;
-
-let text = `C${i+1}`;
-
-circles.push(new Circle(x,y,radius,color,text,speed));
+objects.forEach(obj=>{
+obj.speed = obj.speed * multiplier;
+});
 
 }
 
-}
+canvas.addEventListener("click",function(e){
 
-function detectCollisions(){
+const rect = canvas.getBoundingClientRect();
 
-for(let i=0;i<circles.length;i++){
+const mouseX = e.clientX - rect.left;
+const mouseY = e.clientY - rect.top;
 
-for(let j=i+1;j<circles.length;j++){
+objects.forEach((obj,index)=>{
 
-let c1 = circles[i];
-let c2 = circles[j];
+if(
+mouseX > obj.x &&
+mouseX < obj.x + obj.size &&
+mouseY > obj.y &&
+mouseY < obj.y + obj.size
+){
 
-let dx = c2.posX - c1.posX;
-let dy = c2.posY - c1.posY;
+score++;
+document.getElementById("score").innerText = "Eliminados: "+score;
 
-let distance = Math.sqrt(dx*dx + dy*dy);
+objects.splice(index,1);
 
-let minDistance = c1.radius + c2.radius;
+let x = Math.random()*canvas.width;
+let speed = Math.random()*2+1;
+objects.push(new FallingObject(x,-50,speed,40));
 
-if(distance < minDistance){
-
-// flash azul
-c1.flashTime = 5;
-c2.flashTime = 5;
-
-// vector normal
-let nx = dx / distance;
-let ny = dy / distance;
-
-// intercambio de velocidades
-let tempDx = c1.dx;
-let tempDy = c1.dy;
-
-c1.dx = c2.dx;
-c1.dy = c2.dy;
-
-c2.dx = tempDx;
-c2.dy = tempDy;
-
-// separar círculos para evitar que se queden pegados
-let overlap = minDistance - distance;
-
-c1.posX -= nx * overlap/2;
-c1.posY -= ny * overlap/2;
-
-c2.posX += nx * overlap/2;
-c2.posY += ny * overlap/2;
+updateSpeed();
 
 }
 
-}
+});
 
-}
-
-}
+});
 
 function animate(){
 
-ctx.clearRect(0,0,window_width,window_height);
+ctx.clearRect(0,0,canvas.width,canvas.height);
 
-detectCollisions();
-
-circles.forEach(circle=>{
-circle.update(ctx);
+objects.forEach(obj=>{
+obj.update();
+obj.draw();
 });
 
 requestAnimationFrame(animate);
 
 }
 
-generateCircles(20);
-
+createObjects();
 animate();
